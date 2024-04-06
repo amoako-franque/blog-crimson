@@ -21,6 +21,6 @@
   - check if user is blocked before making a post
   - check if user is blocked during log in
   - deploy api on render
-  - // learn about sessions
+
 
 
