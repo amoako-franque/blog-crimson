@@ -7,6 +7,7 @@ const {
 	deletePost,
 	likePost,
 	getUserPosts,
+	dislikePost,
 } = require("../controllers/postController")
 const { requireSignIn } = require("../middleware/authmiddleware")
 const { uploadPhoto } = require("../middleware/uploadImage")
@@ -29,6 +30,7 @@ postRouter.put(
 )
 
 postRouter.put("/post/like/:postId", requireSignIn, likePost)
+postRouter.put("/post/dislike/:postId", requireSignIn, dislikePost)
 postRouter.delete("/post/posts/:postId", requireSignIn, deletePost)
 
 module.exports = postRouter

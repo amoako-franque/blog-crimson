@@ -64,21 +64,5 @@ const postSchema = new mongoose.Schema(
 		toJSON: { virtuals: true },
 	}
 )
-
-// postSchema.pre("save", async function () {
-// 	try {
-// 		// Find the user document and update its posts array with the new post
-// 		await mongoose
-// 			.model("User")
-// 			.findByIdAndUpdate(
-// 				this.user,
-// 				{ $push: { posts: this._id } },
-// 				{ new: true }
-// 			)
-// 	} catch (err) {
-// 		console.error(err)
-// 	}
-// })
-
 const Post = mongoose.model("Post", postSchema)
 module.exports = Post

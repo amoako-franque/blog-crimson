@@ -95,13 +95,15 @@ exports.getPost = async (req, res, next) => {
 
 		//  update number of views and people who viewed the post
 
-		await Post.findByIdAndUpdate(
-			{ _id: postId },
-			{
-				$inc: { numViews: 1 },
-			},
-			{ new: true }
-		)
+		if (post?.numViews) {
+			await Post.findByIdAndUpdate(
+				{ _id: postId },
+				{
+					$inc: { numViews: 1 },
+				},
+				{ new: true }
+			)
+		}
 
 		res.json({ data: post })
 	} catch (error) {
@@ -257,18 +259,57 @@ exports.likePost = async (req, res, next) => {
 		}
 
 		if (post.likes.includes(user._id)) {
-			await post.updateOne({ $pull: { likes: user._id } })
-			res.status(200).json({ message: "Post unliked" })
+			const post = await Post.findByIdAndUpdate(
+				postId,
+				{ $pull: { likes: user._id } },
+				{ new: true }
+			)
+			res.status(200).json({ message: "Like removed ", post: post })
 			return
 		}
 
-		await Post.findByIdAndUpdate(
+		const likedPost = await Post.findByIdAndUpdate(
 			{ _id: postId },
 			{ $push: { likes: user._id } },
 			{ new: true }
 		)
 
-		res.status(200).json({ message: "Post liked" })
+		res.status(200).json({ message: "Post liked", post: likedPost })
+	} catch (error) {
+		next(error)
+	}
+}
+
+exports.dislikePost = async (req, res, next) => {
+	const { postId } = req.params
+	const user = req?.auth
+
+	validateMongoDbId(postId)
+
+	try {
+		const post = await Post.findById(postId)
+
+		if (!post) {
+			return res.status(404).json({ message: "Post not found", post })
+		}
+
+		if (post.disLikes.includes(user._id)) {
+			const post = await Post.findByIdAndUpdate(
+				{ _id: postId },
+				{ $pull: { disLikes: user._id } },
+				{ new: true }
+			)
+			res.status(200).json({ message: "Dislike removed", post: post })
+			return
+		}
+
+		const dislikedPost = await Post.findByIdAndUpdate(
+			{ _id: postId },
+			{ $push: { dislikes: user._id } },
+			{ new: true }
+		)
+
+		res.status(200).json({ message: "Post liked", post: dislikedPost })
 	} catch (error) {
 		next(error)
 	}

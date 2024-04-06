@@ -16,6 +16,19 @@ exports.uploadPhoto = multer({
 	limit: { fileSize: 1000000 },
 })
 
+exports.postImageResize = async (req, res, next) => {
+	if (!req.file) return next()
+
+	req.file.filename = `user-${Date.now()}- ${req.file.originalname}`
+
+	await sharp(req.file.buffer)
+		.resize(300, 300)
+		.toFormat("jpeg")
+		.jpeg({ quality: 90 })
+		.toFile(`public/images/post/${req.file.filename}`)
+	next()
+}
+
 exports.profilePicResize = async (req, res, next) => {
 	if (!req.file) return next()
 
