@@ -21,7 +21,12 @@ const { uploadPhoto, profilePicResize } = require("../middleware/uploadImage")
 const userRouter = express.Router()
 //
 
-userRouter.post("/auth/register", uploadPhoto.single("image"), register)
+userRouter.post(
+	"/auth/register",
+	uploadPhoto.single("image"),
+	profilePicResize,
+	register
+)
 userRouter.post("/auth/login", login)
 userRouter.get("/auth/users", getUsers)
 userRouter.get("/view-profile/:userId", requireSignIn, whoViewedMyProfile)

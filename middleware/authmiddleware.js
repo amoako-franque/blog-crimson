@@ -20,6 +20,14 @@ const requireSignIn = async (req, res, next) => {
 				message: "Invalid Token",
 			})
 		}
+
+		if (user?.isBlocked) {
+			res.status(401).json({
+				errorMessage: `Access Denied ${user?.firstname} is blocked. Contact Support Team`,
+			})
+
+			return
+		}
 		//attach the user to the request object
 		req.auth = user
 		next()

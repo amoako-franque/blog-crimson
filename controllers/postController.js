@@ -1,14 +1,59 @@
 const Post = require("../models/postModel")
 const User = require("../models/userModel")
 const { validateMongoDbId } = require("../utils/validateMongodbId")
+const Filter = require("bad-words")
 
 exports.createPost = async (req, res) => {
 	const user = req?.auth
-	const { title, description, categoryId } = req.body
 
-	// if (!title || !description || !categoryId) {
-	// 	return res.status(400).json({ message: "All fields are required" })
+	// if (user.subscription === "Starter") {
+	// 	const post_length = user.posts.length
+
+	// 	if (post_length < 3) {
+	// 		const { title, description, categoryId } = req.body
+
+	// 		const requiredFields = [
+	// 			{ field: title, message: "Title is required" },
+	// 			{ field: description, message: "Description is required" },
+	// 			{ field: categoryId, message: "category id is required" },
+	// 		]
+
+	// 		for (const { field, message } of requiredFields) {
+	// 			if (!field) {
+	// 				res.status(400).json({ message })
+	// 				return false
+	// 			}
+	// 		}
+
+	// 		const filter = new Filter()
+
+	// 		const isProfane = filter.isProfane(title, description)
+
+	// 		if (isProfane) {
+	// 			// await User.findByIdAndUpdate({ _id: user._id }, { isBlocked: true })
+	// 			res
+	// 				.status(400)
+	// 				.json({ message: "Profanity is not allowed. You have been blocked" })
+	// 			return false
+	// 		}
+
+	// 		const post = await Post.create({
+	// 			title,
+	// 			description,
+	// 			category: categoryId,
+	// 			user: user._id,
+	// 		})
+
+	// 		user.posts.push(post._id)
+
+	// 		await user.save()
+
+	// 		res.status(201).json({ message: "Post added successfully", post })
+	//         return
+	// 	}
 	// }
+
+	const { title, description, categoryId } = req.body
 
 	const requiredFields = [
 		{ field: title, message: "Title is required" },
@@ -21,6 +66,18 @@ exports.createPost = async (req, res) => {
 			res.status(400).json({ message })
 			return false
 		}
+	}
+
+	const filter = new Filter()
+
+	const isProfane = filter.isProfane(title, description)
+
+	if (isProfane) {
+		// await User.findByIdAndUpdate({ _id: user._id }, { isBlocked: true })
+		res
+			.status(400)
+			.json({ message: "Profanity is not allowed. You have been blocked" })
+		return false
 	}
 
 	const post = await Post.create({
@@ -38,18 +95,6 @@ exports.createPost = async (req, res) => {
 }
 
 exports.getAllPosts = async (req, res) => {
-	const user = req?.auth
-	const posts = await Post.find({}).populate("user")
-
-	const filteredPosts = posts.filter((post) => {
-		const blockedUsers = post.user.blocked
-		const isBlocked = blockedUsers.includes(user.id)
-
-		// return isBlocked ? null : post
-
-		return !isBlocked
-	})
-
 	// const limit = req.query.limit ? parseInt(req.query.limit) : 10
 	// const page = req.query.page ? parseInt(req.query.page) : 1
 	// const skip = (page - 1) * limit
@@ -60,24 +105,50 @@ exports.getAllPosts = async (req, res) => {
 	// 		{ description: { $regex: search, $options: "i" } },
 	// 	],
 	// }
-	// const posts = await Post.find(query).skip(skip).limit(limit)
+
+	const category = req.query.category
+
+	if (category) {
+		const posts = await Post.find({ category })
+			.populate("user", "firstname lastname")
+			.populate("category", "title")
+			.populate("comments")
+
+		res.status(200).json({ posts })
+		return
+	}
+	const posts = await Post.find().limit(3)
 	res.status(200).json({ posts })
+}
+
+exports.timelinePosts = async (req, res, next) => {
+	const userId = req?.auth._id
+	try {
+		const user = await User.findById(userId).populate("blocked")
+
+		const blockedUsers = user?.blocked?.map((blockedUser) => blockedUser._id)
+
+		const posts = await Post.find({ user: { $nin: blockedUsers } }).populate(
+			"user"
+		)
+
+		res.status(200).json({ posts })
+	} catch (error) {
+		next(error)
+	}
 }
 
 exports.getUserPosts = async (req, res, next) => {
 	const auth = req?.auth
 	validateMongoDbId(auth.id)
 	try {
-		const posts = await Post.find({ user: auth.id })
-		// const user = await User.findById({ id: auth.id }).populate(
-		// 	"posts",
-		// 	"title description"
-		// )
-		// if (!user) {
-		// 	return res.status(404).json({ message: "User not found" })
-		// }
-		// const posts = await Post.find({ user: userId })
-		res.status(200).json({ posts: posts })
+		const posts = await Post.find({ user: auth._id })
+		if (!posts) {
+			return res
+				.status(404)
+				.json({ message: "No posts found. Add posts to see your posts" })
+		}
+		res.status(200).json({ posts })
 	} catch (error) {
 		next(error)
 	}
@@ -305,7 +376,7 @@ exports.dislikePost = async (req, res, next) => {
 
 		const dislikedPost = await Post.findByIdAndUpdate(
 			{ _id: postId },
-			{ $push: { dislikes: user._id } },
+			{ $push: { disLikes: user._id } },
 			{ new: true }
 		)
 

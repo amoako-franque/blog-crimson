@@ -47,7 +47,6 @@ exports.register = async (req, res, next) => {
 
 			res.status(201).json({
 				message: "Account created. Please login with your credentials.",
-				data: user,
 			})
 		} catch (error) {
 			next(error)
@@ -56,9 +55,13 @@ exports.register = async (req, res, next) => {
 
 	// user uploaded their profile pic
 
-	const result = await cloudinary.uploader.upload(req?.file?.path, {
+	const localPath = `public/images/profile/${req.file.filename}`
+
+	const result = await cloudinary.uploader.upload(localPath, {
 		folder: "profile_pics",
 	})
+
+	fs.unlinkSync(localPath)
 
 	try {
 		const salt = await bcrypt.genSalt(10)
@@ -76,7 +79,6 @@ exports.register = async (req, res, next) => {
 		})
 		res.status(201).json({
 			message: "Account created. Please login with your credentials.",
-			data: user,
 		})
 	} catch (error) {
 		next(error)
@@ -95,6 +97,16 @@ exports.login = async (req, res, next) => {
 	if (!user) {
 		// throw new Error(" could not find user")
 		return res.status(400).json({ errorMessage: "Invalid user credentials" })
+	}
+
+	//  check if user is blocked
+
+	if (user?.isBlocked) {
+		res.status(401).json({
+			errorMessage: `Access Denied ${user?.firstname} is blocked. Contact Support Team`,
+		})
+
+		return false
 	}
 
 	try {
@@ -119,7 +131,6 @@ exports.login = async (req, res, next) => {
 		res.status(200).json({
 			message: "Login successful",
 			data: token,
-			user_fullname: user,
 		})
 	} catch (error) {
 		next(error)
@@ -474,7 +485,7 @@ exports.blockUser = async (req, res) => {
 	res.status(200).json({ message: `You have blocked` })
 }
 
-exports.unBlockUser = async () => {
+exports.unBlockUser = async (req, res) => {
 	const loggedInUser = req?.auth
 	if (!loggedInUser) {
 		res.status(401).json({ message: "You must be logged in to unblock users" })

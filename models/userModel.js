@@ -91,6 +91,11 @@ const userSchema = new Schema(
 				ref: "User",
 			},
 		],
+		subscription: {
+			type: String,
+			enum: ["Starter", "Premium", "Pro"],
+			default: "Starter",
+		},
 		password_reset_token: String,
 		password_reset_token_expiry: Date,
 		userAward: {
