@@ -19,7 +19,6 @@ const {
 const { requireSignIn, isAdmin } = require("../middleware/authmiddleware")
 const { uploadPhoto, profilePicResize } = require("../middleware/uploadImage")
 const userRouter = express.Router()
-//
 
 userRouter.post(
 	"/auth/register",

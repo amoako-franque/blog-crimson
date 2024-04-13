@@ -51,7 +51,6 @@ app.get("/api/v1", roleCheck, myFunc)
 fs.readdirSync("./routes").map((route) => {
 	app.use("/api/v1", require("./routes/" + route))
 })
-
 app.use(notFound)
 app.use(errorHandler)
 // http://localhost:8000/api/v1/register
