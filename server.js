@@ -27,22 +27,18 @@ app.use(cookieParser())
 app.use(cors(corsOptions))
 app.use(loginLimit)
 
-let roles = ["admin", "guest", "ceo", " super admin", "employee"]
-const myFunc = (req, res) => {
-	// write a code to modify
-
-	res.send({ message: " user inputs validated", data: req.body })
-}
-
-const roleCheck = (req, res, next) => {
-	if (req.body.role !== "admin") {
-		res.send("you are not not authorized. see the admin")
-		return
+let count = 0
+const interval = setInterval(() => {
+	if (count >= 30 * 24 * 60) {
+		clearInterval(interval)
+	} else {
+		fetch("http://localhost:8000/api/v1/health-check")
+			.then((response) => response.json())
+			.then((data) => console.log(data))
+			.catch((error) => console.error(error))
+		count += 10
 	}
-	next()
-}
-
-app.get("/api/v1", roleCheck, myFunc)
+}, 600000)
 
 // app.use("/api/v1/auth", require("./routes/userRoutes"))
 // app.use("/api/v1/category", require("./routes/categoryRoutes"))
