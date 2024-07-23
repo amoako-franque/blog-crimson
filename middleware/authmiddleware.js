@@ -4,13 +4,14 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET
 
 const requireSignIn = async (req, res, next) => {
 	const token = req.cookies.userToken
+
 	try {
 		if (!token) {
 			return res.status(401).json({
 				message: "Invalid Token Format",
 			})
 		}
-		const decode = jwt.verify(token, JWT_SECRET_KEY)
+		const decode = jwt.verify(token, process.env.JWT_ACCESS_TOKEN_SECRET)
 
 		const { userId, role, email } = decode
 		//find the user by id

@@ -6,8 +6,9 @@ const sendEmail = require("../utils/sendEmail")
 const cloudinary = require("../utils/cloudinary")
 const { validateMongoDbId } = require("../utils/validateMongodbId")
 const path = require("path")
+const jwt = require("jsonwebtoken")
 const fs = require("fs")
-
+const { validationResult } = require("express-validator")
 /**
  * @access Public
  * @url http://localhost:8000/register
@@ -17,6 +18,12 @@ const fs = require("fs")
 
 exports.register = async (req, res, next) => {
 	const { email, password, firstname, lastname } = req.body
+
+	const errors = validationResult(req)
+
+	if (!errors.isEmpty()) {
+		return res.status(400).json({ errors: errors.array() })
+	}
 
 	if (!email || !firstname || !lastname || !password) {
 		res.json({ error: "All fields are required" })
@@ -38,7 +45,7 @@ exports.register = async (req, res, next) => {
 			const salt = await bcrypt.genSalt(10)
 			const hashedPassword = await bcrypt.hash(password, salt)
 
-			const user = await User.create({
+			await User.create({
 				password: hashedPassword,
 				firstname,
 				email,
@@ -67,7 +74,7 @@ exports.register = async (req, res, next) => {
 		const salt = await bcrypt.genSalt(10)
 		const hashedPassword = await bcrypt.hash(password, salt)
 
-		const user = await User.create({
+		await User.create({
 			password: hashedPassword,
 			firstname,
 			email,
@@ -115,26 +122,113 @@ exports.login = async (req, res, next) => {
 			return res.status(400).json({ message: "Invalid credentials" })
 		}
 
-		user.password = undefined
-
 		//  generate jwt token
+		// const token = createJwtToken(user?._id, user?.email, user?.role)
 
-		const token = createJwtToken(user?._id, user?.email, user?.role)
+		// access token : short half life or expiry = 5min
+		const access_token = jwt.sign(
+			{
+				userId: user?._id,
+				email: user?.email,
+				role: user?.role,
+			},
+			process.env.JWT_ACCESS_TOKEN_SECRET,
+			{ expiresIn: "5m" }
+		)
 
-		res.cookie("userToken", token, {
+		// refresh token : longer expiry / half life
+		const refreshToken = jwt.sign(
+			{
+				userId: user?._id,
+				email: user?.email,
+				role: user?.role,
+			},
+			process.env.JWT_REFRESH_TOKEN_SECRET,
+			{ expiresIn: "1d" }
+		)
+
+		await user.save()
+
+		res.cookie("user_refresh_token", refreshToken, {
 			httpOnly: true, //accessible only by web server
 			secure: true, //https
 			sameSite: "None", //cross-site cookie
 			maxAge: 1 * 24 * 60 * 60 * 1000, //cookie expiry: set to match rf
 		})
 
+		// res.cookie("userToken", access_token, {
+		// 	httpOnly: true, //accessible only by web server
+		// 	secure: true, //https
+		// 	sameSite: "None", //cross-site cookie
+		// 	maxAge: 5 * 60 * 1000, //cookie expiry: set to match rf
+		// })
+
 		res.status(200).json({
 			message: "Login successful",
-			data: token,
+			access_token: access_token,
 		})
 	} catch (error) {
 		next(error)
 	}
+}
+
+exports.refresh = async (req, res) => {
+	const token = req?.cookies.user_refresh_token
+
+	// validate token
+	if (!token) {
+		return res.status(401).json({ errorMessage: "Please login to continue" })
+	}
+	// continue next week
+	jwt.verify(
+		token,
+		process.env.JWT_REFRESH_TOKEN_SECRET,
+		async (err, decoded) => {
+			if (err) return res.status(403).json({ message: "Forbidden" })
+
+			const user = await User.findById(decoded.userId).exec()
+
+			if (!user) return res.status(401).json({ message: "Unauthorized" })
+
+			// access token : short half life or expiry = 5min
+			const access_token = jwt.sign(
+				{
+					userId: user?._id,
+					email: user?.email,
+					role: user?.role,
+				},
+				process.env.JWT_ACCESS_TOKEN_SECRET,
+				{ expiresIn: "5m" }
+			)
+
+			res.cookie("userToken", access_token, {
+				httpOnly: true, //accessible only by web server
+				secure: true, //https
+				sameSite: "None", //cross-site cookie
+				maxAge: 5 * 60 * 1000, //cookie expiry: set to match rf
+			})
+
+			res.json({ access_token })
+		}
+	)
+}
+
+exports.logout = async (req, res) => {
+	const cookies = req?.cookies
+	if (!cookies?.user_refresh_token) return res.sendStatus(204) //No content
+	res.clearCookie("user_refresh_token", {
+		httpOnly: true,
+		sameSite: "None",
+		secure: true,
+	})
+
+	res.clearCookie("userToken", {
+		httpOnly: true,
+		sameSite: "None",
+		secure: true,
+	})
+
+	res.json({ message: "Cookie cleared. Logout completed" })
 }
 
 exports.whoViewedMyProfile = async (req, res, next) => {

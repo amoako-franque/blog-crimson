@@ -3,7 +3,7 @@ const { requireSignIn } = require("../middleware/authmiddleware")
 const { makeComment } = require("../controllers/commentController")
 const commentRouter = express.Router()
 
-commentRouter.post("/add/comment/:postId", requireSignIn, makeComment)
+commentRouter.post("/comment/:postId", requireSignIn, makeComment)
 commentRouter.post(
 	"/posts/:postId/comment/:commentId",
 	requireSignIn,

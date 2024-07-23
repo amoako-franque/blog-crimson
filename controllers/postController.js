@@ -109,10 +109,16 @@ exports.getAllPosts = async (req, res) => {
 	const category = req.query.category
 
 	if (category) {
-		const posts = await Post.find({ category })
-			.populate("user", "firstname lastname")
-			.populate("category", "title")
-			.populate("comments")
+		// const posts = await Post.find({ category })
+		// 	.populate("user", "firstname lastname")
+		// 	.populate("comments")
+		// 	.populate("category", "title")
+		// 	.populate("comments")
+
+		const posts = await Post.find().populate({
+			path: "user",
+			select: "firstname lastname",
+		})
 
 		res.status(200).json({ posts })
 		return

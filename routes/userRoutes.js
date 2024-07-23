@@ -15,6 +15,8 @@ const {
 	usersWhoViewedMyProfile,
 	blockUserByAdmin,
 	unBlockUserByAdmin,
+	logout,
+	refresh,
 } = require("../controllers/userController")
 const { requireSignIn, isAdmin } = require("../middleware/authmiddleware")
 const { uploadPhoto, profilePicResize } = require("../middleware/uploadImage")
@@ -27,6 +29,8 @@ userRouter.post(
 	register
 )
 userRouter.post("/auth/login", login)
+userRouter.post("/auth/logout", requireSignIn, logout)
+userRouter.post("/auth/refresh", refresh)
 userRouter.get("/auth/users", getUsers)
 userRouter.get("/view-profile/:userId", requireSignIn, whoViewedMyProfile)
 userRouter.get("/profile/viewers", requireSignIn, usersWhoViewedMyProfile)

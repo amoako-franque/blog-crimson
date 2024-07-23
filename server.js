@@ -9,7 +9,9 @@ require("dotenv").config()
 const colors = require("colors")
 const { notFound, errorHandler } = require("./middleware/errorHandlers")
 const corsOptions = require("./config/corsOptions")
-const { loginLimit } = require("./middleware/loginLimitter")
+const { loginLimit } = require("./middleware/loginLimiter")
+const compression = require("compression")
+
 // connection to mongodb database
 db_connection()
 
@@ -20,12 +22,17 @@ const app = express()
 // middleware
 //  refresh token and sessions + cookies
 app.use(helmet())
+app.use(compression())
 app.use(morgan("dev"))
 app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 app.use(cors(corsOptions))
 app.use(loginLimit)
+
+app.get("/data", (req, res) => {
+	res.json({ data: req.body })
+})
 
 let count = 0
 const interval = setInterval(() => {
@@ -39,7 +46,7 @@ const interval = setInterval(() => {
 		count += 10
 	}
 }, 600000)
-
+//
 // app.use("/api/v1/auth", require("./routes/userRoutes"))
 // app.use("/api/v1/category", require("./routes/categoryRoutes"))
 // app.use("/api/v1/post", require("./routes/postRoutes"))

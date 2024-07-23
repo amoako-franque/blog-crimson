@@ -96,6 +96,8 @@ const userSchema = new Schema(
 			enum: ["Starter", "Premium", "Pro"],
 			default: "Starter",
 		},
+		accessTokens: [],
+		refreshTokens: [],
 		password_reset_token: String,
 		password_reset_token_expiry: Date,
 		userAward: {

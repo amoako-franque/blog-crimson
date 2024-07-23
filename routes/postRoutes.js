@@ -12,20 +12,16 @@ const {
 } = require("../controllers/postController")
 const { requireSignIn } = require("../middleware/authmiddleware")
 const { uploadPhoto } = require("../middleware/uploadImage")
+const { postCache } = require("../middleware/cachePosts")
 const postRouter = express.Router()
 
-postRouter.post(
-	"/post/add-post",
-	uploadPhoto.single("image"),
-	requireSignIn,
-	createPost
-)
-postRouter.get("/post/posts", requireSignIn, getAllPosts)
+postRouter.post("/post", uploadPhoto.single("image"), requireSignIn, createPost)
+postRouter.get("/posts", postCache(300), getAllPosts)
 postRouter.get("/user/posts", requireSignIn, getUserPosts)
 postRouter.get("/user/timeline/posts", requireSignIn, timelinePosts)
-postRouter.get("/post/posts/:postId", getPost)
+postRouter.get("/posts/:postId", getPost)
 postRouter.put(
-	"/post/posts/:postId",
+	"/posts/:postId",
 	uploadPhoto.single("image"),
 	requireSignIn,
 	updatePost
